@@ -1,0 +1,1274 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
+<nta>
+	<declaration>// Improvements:
+// 1. Multiple executor instances and assignment of Callbacks to executors     []
+// 2. Executor Version 1                                                       [X]
+// 3. Executor Version 2                                                       []
+// 4. Periodic Callback, add start time and end time?
+// 5. Wall Time Callback with array of times for triggering
+// 6. Data triggered Callbacks Synchronizing Callbacks to synchronize over data 
+// 7. Verification and Simulation mode
+
+
+
+// MAXIMUM AMOUNT OF CALLBACKS FOR EACH TYPE
+const int MAX = 100;
+const int MAXX = 10;
+
+// DEFINE THE DIFFERENT TYPES OF CALLBACKS
+typedef int[0,3] callback_t;
+const callback_t TIMER = 0;
+const callback_t SERVICE = 1;
+const callback_t SUBSCRIBER = 2;
+const callback_t CLIENT = 3;
+
+
+
+// What is missing?
+// Define for releases either period or an array of release times
+// connect timers to the release of publishers, model communication delay
+// Add state done to timer
+
+
+// Place global declarations here.
+//broadcast chan polltim, pollsub, pollsrv, pollcli;
+
+//First line replaced with
+broadcast chan poll[4];
+
+// Variables representing the ready set
+int rs_tim, rs_sub, rs_srv, rs_cli;
+// Priority of next callback
+int exec_prio;
+// Channels for Execution
+//chan TimExecStart, SubExecStart, SrvExecStart, CliExecStart, ExecDone;
+
+// Previous line replaced with:
+chan ExecStart[4], ExecDone;
+
+// System time clock
+//clock clk; //GU: I comment it for saving the state space as you do not use this clock in the model, so having it will just increase the state space for no meaning.
+
+
+
+//Release Timers
+//chan release_timer[timers];
+int released_tim[MAX];
+int released_sub[MAX];
+int released_srv[MAX];
+int released_cli[MAX];
+
+// Function to search for highest priority callback to execute
+
+// Function to return execid to callback
+int get_exec_id_timer(int id)
+{
+    int ret_id = rs_tim;
+    int i;
+    for(i:=0;i&lt;id;i++){
+    if(released_tim[i]==1){
+        ret_id = ret_id-1;
+        }
+    }
+    return ret_id;
+}
+
+// Function to return execid to callback
+int get_exec_id_subscriber(int id)
+{
+    int ret_id = rs_sub;
+    int i;
+    for(i:=0;i&lt;id;i++){
+    if(released_sub[i]==1){
+        ret_id = ret_id-1;
+        }
+    }
+    return ret_id;
+}
+
+// Function to return execid to callback
+int get_exec_id_service(int id)
+{
+    int ret_id = rs_srv;
+    int i;
+    for(i:=0;i&lt;id;i++){
+    if(released_srv[i]==1){
+        ret_id = ret_id-1;
+        }
+    }
+    return ret_id;
+}
+
+// Function to return execid to callback
+int get_exec_id_client(int id)
+{
+    int ret_id = rs_cli;
+    int i;
+    for(i:=0;i&lt;id;i++){
+    if(released_cli[i]==1){
+        ret_id = ret_id-1;
+        }
+    }
+    return ret_id;
+}</declaration>
+	<template>
+		<name x="5" y="5">ExecutorV1</name>
+		<parameter>const int StopTime</parameter>
+		<declaration>// Place local declarations here.
+clock x;
+clock systime;
+int tim, sub, ser, cli;
+
+void reset() {
+    x = 0;
+}
+</declaration>
+		<location id="id0" x="-161" y="59">
+			<name x="-144" y="51">FetchTimer</name>
+			<urgent/>
+		</location>
+		<location id="id1" x="-161" y="136">
+			<name x="-144" y="127">FetchSubscriber</name>
+			<urgent/>
+		</location>
+		<location id="id2" x="-161" y="229">
+			<name x="-144" y="221">FetchService</name>
+			<urgent/>
+		</location>
+		<location id="id3" x="-161" y="314">
+			<name x="-144" y="306">FetchClient</name>
+			<urgent/>
+		</location>
+		<location id="id4" x="229" y="51">
+			<name x="212" y="68">ExecuteTimer</name>
+		</location>
+		<location id="id5" x="-272" y="-102">
+			<name x="-280" y="-93">Idle</name>
+			<label kind="invariant" x="-331" y="-76">systime &lt; StopTime</label>
+			<urgent/>
+		</location>
+		<location id="id6" x="229" y="136">
+			<name x="221" y="153">ExecuteSubscriber</name>
+		</location>
+		<location id="id7" x="229" y="221">
+			<name x="221" y="238">ExecuteService</name>
+		</location>
+		<location id="id8" x="229" y="314">
+			<name x="229" y="331">ExecuteClient</name>
+		</location>
+		<location id="id9" x="-161" y="-102">
+			<name x="-195" y="-136">PolledTimers</name>
+			<committed/>
+		</location>
+		<location id="id10" x="-25" y="-102">
+			<name x="-35" y="-136">PolledSubscribers</name>
+			<committed/>
+		</location>
+		<location id="id11" x="110" y="-102">
+			<name x="100" y="-136">PolledServices</name>
+			<committed/>
+		</location>
+		<location id="id12" x="229" y="-102">
+			<name x="212" y="-136">PolledClients</name>
+			<committed/>
+		</location>
+		<location id="id13" x="-272" y="-212">
+			<label kind="invariant" x="-323" y="-238">x&lt;=1</label>
+		</location>
+		<location id="id14" x="34" y="17">
+			<committed/>
+		</location>
+		<location id="id15" x="34" y="102">
+			<committed/>
+		</location>
+		<location id="id16" x="-93" y="102">
+			<committed/>
+		</location>
+		<location id="id17" x="17" y="195">
+			<committed/>
+		</location>
+		<location id="id18" x="-110" y="195">
+			<committed/>
+		</location>
+		<location id="id19" x="17" y="289">
+			<committed/>
+		</location>
+		<location id="id20" x="-110" y="289">
+			<committed/>
+		</location>
+		<init ref="id5"/>
+		<transition>
+			<source ref="id20"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-149" y="279">rs_tim == 0</label>
+		</transition>
+		<transition>
+			<source ref="id18"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-149" y="190">rs_tim == 0</label>
+		</transition>
+		<transition>
+			<source ref="id20"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-135" y="140">rs_tim &gt; 0</label>
+		</transition>
+		<transition>
+			<source ref="id18"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-135" y="93">rs_tim &gt; 0</label>
+		</transition>
+		<transition>
+			<source ref="id16"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-153" y="76">rs_tim &gt; 0</label>
+		</transition>
+		<transition>
+			<source ref="id16"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-153" y="110">rs_tim == 0</label>
+		</transition>
+		<transition>
+			<source ref="id15"/>
+			<target ref="id16"/>
+			<label kind="synchronisation" x="-59" y="85">poll[TIMER]!</label>
+		</transition>
+		<transition>
+			<source ref="id14"/>
+			<target ref="id0"/>
+			<label kind="synchronisation" x="-85" y="0">poll[TIMER]!</label>
+			<nail x="-102" y="17"/>
+		</transition>
+		<transition>
+			<source ref="id13"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-272" y="-191">x==1</label>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id5"/>
+			<label kind="guard" x="-331" y="289">rs_cli==0</label>
+			<label kind="assignment" x="-331" y="272">reset()</label>
+			<nail x="-409" y="314"/>
+			<nail x="-409" y="-102"/>
+		</transition>
+		<transition>
+			<source ref="id12"/>
+			<target ref="id0"/>
+			<label kind="guard" x="-143" y="-68">rs_tim!=0||rs_sub!=0||rs_srv!=0||rs_cli!=0</label>
+			<nail x="229" y="-34"/>
+			<nail x="-161" y="-34"/>
+		</transition>
+		<transition>
+			<source ref="id12"/>
+			<target ref="id13"/>
+			<label kind="guard" x="-195" y="-246">rs_tim==0 &amp;&amp; rs_sub ==0 &amp;&amp; rs_srv==0 &amp;&amp; rs_cli==0</label>
+			<label kind="assignment" x="-42" y="-229">x=0</label>
+			<label kind="comments" x="-467" y="-459">Ready set empty
+Assumption: How often do we poll?
+Improvement: Initial released? and skip all iterations of polling till first execution
+Assumption: When all happens at same time, the executor executes last, all callbacks are released first</label>
+			<nail x="229" y="-170"/>
+			<nail x="229" y="-212"/>
+			<nail x="-255" y="-212"/>
+		</transition>
+		<transition>
+			<source ref="id11"/>
+			<target ref="id12"/>
+			<label kind="synchronisation" x="127" y="-119">poll[CLIENT]!</label>
+		</transition>
+		<transition>
+			<source ref="id10"/>
+			<target ref="id11"/>
+			<label kind="synchronisation" x="0" y="-119">poll[SERVICE]!</label>
+		</transition>
+		<transition>
+			<source ref="id9"/>
+			<target ref="id10"/>
+			<label kind="synchronisation" x="-144" y="-119">poll[SUBSCRIBER]!</label>
+		</transition>
+		<transition>
+			<source ref="id5"/>
+			<target ref="id9"/>
+			<label kind="synchronisation" x="-246" y="-119">poll[TIMER]!</label>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id1"/>
+			<label kind="guard" x="-238" y="76">rs_tim==0</label>
+		</transition>
+		<transition>
+			<source ref="id4"/>
+			<target ref="id14"/>
+			<label kind="synchronisation" x="76" y="-8">ExecDone!</label>
+			<label kind="assignment" x="76" y="17">rs_tim=rs_tim-1</label>
+			<nail x="170" y="17"/>
+			<nail x="102" y="17"/>
+		</transition>
+		<transition>
+			<source ref="id0"/>
+			<target ref="id4"/>
+			<label kind="synchronisation" x="-102" y="68">ExecStart[TIMER]!</label>
+			<nail x="-127" y="85"/>
+			<nail x="170" y="85"/>
+		</transition>
+		<transition>
+			<source ref="id8"/>
+			<target ref="id19"/>
+			<label kind="synchronisation" x="27" y="272">ExecDone!</label>
+			<label kind="assignment" x="27" y="289">rs_cli=rs_cli-1</label>
+			<nail x="204" y="289"/>
+			<nail x="119" y="289"/>
+			<nail x="34" y="289"/>
+		</transition>
+		<transition>
+			<source ref="id3"/>
+			<target ref="id8"/>
+			<label kind="synchronisation" x="25" y="348">ExecStart[CLIENT]!</label>
+			<nail x="-127" y="365"/>
+			<nail x="212" y="365"/>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id3"/>
+			<label kind="guard" x="-238" y="246">rs_srv==0</label>
+		</transition>
+		<transition>
+			<source ref="id7"/>
+			<target ref="id17"/>
+			<label kind="synchronisation" x="27" y="178">ExecDone!</label>
+			<label kind="assignment" x="27" y="195">rs_srv=rs_srv-1</label>
+			<nail x="195" y="195"/>
+			<nail x="119" y="195"/>
+			<nail x="34" y="195"/>
+		</transition>
+		<transition>
+			<source ref="id2"/>
+			<target ref="id7"/>
+			<label kind="synchronisation" x="25" y="255">ExecStart[SERVICE]!</label>
+			<nail x="-127" y="272"/>
+			<nail x="204" y="272"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id2"/>
+			<label kind="guard" x="-238" y="153">rs_sub==0</label>
+		</transition>
+		<transition>
+			<source ref="id6"/>
+			<target ref="id15"/>
+			<label kind="synchronisation" x="85" y="85">ExecDone!</label>
+			<label kind="assignment" x="68" y="102">rs_sub=rs_sub-1</label>
+			<nail x="170" y="102"/>
+			<nail x="76" y="102"/>
+			<nail x="51" y="102"/>
+		</transition>
+		<transition>
+			<source ref="id1"/>
+			<target ref="id6"/>
+			<label kind="synchronisation" x="0" y="153">ExecStart[SUBSCRIBER]!</label>
+			<nail x="-119" y="170"/>
+			<nail x="187" y="170"/>
+		</transition>
+		<transition>
+			<source ref="id17"/>
+			<target ref="id18"/>
+			<label kind="synchronisation" x="-76" y="178">poll[TIMER]!</label>
+		</transition>
+		<transition>
+			<source ref="id19"/>
+			<target ref="id20"/>
+			<label kind="synchronisation" x="-76" y="272">poll[TIMER]!</label>
+		</transition>
+	</template>
+	<template>
+		<name>ExecutorV2</name>
+		<parameter>const int StopTime</parameter>
+		<declaration>// Place local declarations here.
+clock x;
+int tim, sub, ser, cli;
+clock systime;
+void reset() {
+    x = 0;
+}</declaration>
+		<location id="id21" x="-161" y="59">
+			<name x="-144" y="51">FetchTimer</name>
+			<urgent/>
+		</location>
+		<location id="id22" x="-161" y="136">
+			<name x="-144" y="127">FetchSubscriber</name>
+			<urgent/>
+		</location>
+		<location id="id23" x="-161" y="229">
+			<name x="-144" y="221">FetchService</name>
+			<urgent/>
+		</location>
+		<location id="id24" x="-161" y="314">
+			<name x="-144" y="306">FetchClient</name>
+			<urgent/>
+		</location>
+		<location id="id25" x="93" y="51">
+			<name x="85" y="68">ExecuteTimer</name>
+		</location>
+		<location id="id26" x="-272" y="-102">
+			<name x="-280" y="-93">Idle</name>
+			<label kind="invariant" x="-323" y="-85">systime &lt; StopTime</label>
+			<urgent/>
+		</location>
+		<location id="id27" x="93" y="136">
+			<name x="76" y="153">ExecuteSubscriber</name>
+		</location>
+		<location id="id28" x="93" y="221">
+			<name x="85" y="238">ExecuteService</name>
+		</location>
+		<location id="id29" x="93" y="314">
+			<name x="85" y="331">ExecuteClient</name>
+		</location>
+		<location id="id30" x="-161" y="-102">
+			<name x="-195" y="-136">PolledTimers</name>
+			<committed/>
+		</location>
+		<location id="id31" x="-25" y="-102">
+			<name x="-35" y="-136">PolledSubscribers</name>
+			<committed/>
+		</location>
+		<location id="id32" x="110" y="-102">
+			<name x="100" y="-136">PolledServices</name>
+			<committed/>
+		</location>
+		<location id="id33" x="229" y="-102">
+			<name x="212" y="-136">PolledClients</name>
+			<committed/>
+		</location>
+		<location id="id34" x="-272" y="-212">
+			<label kind="invariant" x="-289" y="-246">x&lt;=1</label>
+		</location>
+		<init ref="id26"/>
+		<transition>
+			<source ref="id34"/>
+			<target ref="id26"/>
+			<label kind="guard" x="-272" y="-191">x==1</label>
+		</transition>
+		<transition>
+			<source ref="id24"/>
+			<target ref="id26"/>
+			<label kind="guard" x="-331" y="289">rs_cli==0</label>
+			<label kind="assignment" x="-331" y="272">reset()</label>
+			<nail x="-409" y="314"/>
+			<nail x="-409" y="-102"/>
+		</transition>
+		<transition>
+			<source ref="id33"/>
+			<target ref="id21"/>
+			<label kind="guard" x="-143" y="-68">rs_tim!=0||rs_sub!=0||rs_srv!=0||rs_cli!=0</label>
+			<nail x="229" y="-34"/>
+			<nail x="-161" y="-34"/>
+		</transition>
+		<transition>
+			<source ref="id33"/>
+			<target ref="id34"/>
+			<label kind="guard" x="-195" y="-246">rs_tim==0 &amp;&amp; rs_sub ==0 &amp;&amp; rs_srv==0 &amp;&amp; rs_cli==0</label>
+			<label kind="assignment" x="-42" y="-229">x=0</label>
+			<label kind="comments" x="-467" y="-374">Ready set empty
+Assumption: How often do we poll?
+Improvement: Initial released? and skip all iterations of polling till first execution
+Assumption: When all happens at same time, the executor executes last, all callbacks are released first</label>
+			<nail x="229" y="-170"/>
+			<nail x="229" y="-212"/>
+			<nail x="-255" y="-212"/>
+		</transition>
+		<transition>
+			<source ref="id32"/>
+			<target ref="id33"/>
+			<label kind="synchronisation" x="128" y="-119">poll[CLIENT]!</label>
+		</transition>
+		<transition>
+			<source ref="id31"/>
+			<target ref="id32"/>
+			<label kind="synchronisation" x="0" y="-119">poll[SERVICE]!</label>
+		</transition>
+		<transition>
+			<source ref="id30"/>
+			<target ref="id31"/>
+			<label kind="synchronisation" x="-144" y="-119">poll[SUBSCRIBER]!</label>
+		</transition>
+		<transition>
+			<source ref="id26"/>
+			<target ref="id30"/>
+			<label kind="synchronisation" x="-246" y="-119">poll[TIMER]!</label>
+		</transition>
+		<transition>
+			<source ref="id21"/>
+			<target ref="id22"/>
+			<label kind="guard" x="-238" y="76">rs_tim==0</label>
+		</transition>
+		<transition>
+			<source ref="id25"/>
+			<target ref="id21"/>
+			<label kind="synchronisation" x="-102" y="0">ExecDone!</label>
+			<label kind="assignment" x="-109" y="17">rs_tim=rs_tim-1</label>
+			<nail x="51" y="17"/>
+			<nail x="-127" y="17"/>
+		</transition>
+		<transition>
+			<source ref="id21"/>
+			<target ref="id25"/>
+			<label kind="synchronisation" x="-102" y="68">ExecStart[TIMER]!</label>
+			<nail x="-127" y="85"/>
+			<nail x="59" y="85"/>
+		</transition>
+		<transition>
+			<source ref="id29"/>
+			<target ref="id24"/>
+			<label kind="synchronisation" x="-109" y="272">ExecDone!</label>
+			<label kind="assignment" x="-109" y="289">rs_cli=rs_cli-1</label>
+			<nail x="68" y="289"/>
+			<nail x="-127" y="289"/>
+		</transition>
+		<transition>
+			<source ref="id24"/>
+			<target ref="id29"/>
+			<label kind="synchronisation" x="-110" y="348">ExecStart[CLIENT]!</label>
+			<nail x="-127" y="365"/>
+			<nail x="76" y="365"/>
+		</transition>
+		<transition>
+			<source ref="id23"/>
+			<target ref="id24"/>
+			<label kind="guard" x="-238" y="246">rs_srv==0</label>
+		</transition>
+		<transition>
+			<source ref="id28"/>
+			<target ref="id23"/>
+			<label kind="synchronisation" x="-109" y="178">ExecDone!</label>
+			<label kind="assignment" x="-109" y="195">rs_srv=rs_srv-1</label>
+			<nail x="59" y="195"/>
+			<nail x="-127" y="195"/>
+		</transition>
+		<transition>
+			<source ref="id23"/>
+			<target ref="id28"/>
+			<label kind="synchronisation" x="-110" y="255">ExecStart[SERVICE]!</label>
+			<nail x="-127" y="272"/>
+			<nail x="68" y="272"/>
+		</transition>
+		<transition>
+			<source ref="id22"/>
+			<target ref="id23"/>
+			<label kind="guard" x="-238" y="153">rs_sub==0</label>
+		</transition>
+		<transition>
+			<source ref="id27"/>
+			<target ref="id22"/>
+			<label kind="synchronisation" x="-101" y="85">ExecDone!</label>
+			<label kind="assignment" x="-101" y="102">rs_sub=rs_sub-1</label>
+			<nail x="51" y="102"/>
+			<nail x="-119" y="102"/>
+		</transition>
+		<transition>
+			<source ref="id22"/>
+			<target ref="id27"/>
+			<label kind="synchronisation" x="-93" y="153">ExecStart[SUBSCRIBER]!</label>
+			<nail x="-110" y="170"/>
+			<nail x="51" y="170"/>
+		</transition>
+	</template>
+	<template>
+		<name>PeriodicCallback</name>
+		<parameter>const int id, const int exec_time, const int period, callback_t type, int releases, const int BufferSize</parameter>
+		<declaration>clock x;
+clock y;
+int exec_id;
+int instance;
+bool NoOverflow = true;
+
+clock wait;
+
+
+clock relTim[BufferSize];
+int relcnt;
+int elcnt;
+
+
+bool startExec(){
+    bool result = false;
+    
+    if(type == TIMER) {
+        result = rs_tim==exec_id;
+    }
+    if(type == SUBSCRIBER) {
+        result = rs_sub==exec_id;
+    }
+    if(type == CLIENT) {
+        result = rs_cli==exec_id;
+    }
+    if(type == SERVICE) {
+        result = rs_srv==exec_id;
+    }
+
+    return result;
+}
+
+
+
+void update() {
+    if(type == TIMER) {
+        rs_tim=rs_tim+1;
+        released_tim[id]=1;
+    }
+    if(type == SUBSCRIBER) {
+        rs_sub=rs_sub+1;
+        released_sub[id]=1;
+    }
+    if(type == CLIENT) {
+        rs_cli=rs_cli+1;
+        released_cli[id]=1;
+    }
+    if(type == SERVICE) {
+        rs_srv=rs_srv+1;
+        released_srv[id]=1;
+    }
+}
+
+void getExecId(){
+    if(type == TIMER) {
+        exec_id=get_exec_id_timer(id);
+    }
+    if(type == SUBSCRIBER) {
+        exec_id=get_exec_id_subscriber(id);
+    }
+    if(type == CLIENT) {
+        exec_id=get_exec_id_client(id);
+    }
+    if(type == SERVICE) {
+        exec_id=get_exec_id_service(id);
+    }
+}
+
+
+void increaseRelease() {
+    y=0;
+    releases++;
+    if(releases &gt; BufferSize){
+        releases = BufferSize;
+        NoOverflow = false;
+    }
+    else{
+        elcnt++;
+        if(elcnt &gt;= BufferSize){
+            elcnt = 0;
+            relTim[BufferSize-1] = 0;
+        }    
+        else{
+            relTim[elcnt-1] = 0;
+        }
+    }
+}
+
+void increaseInstance() {
+    
+    if(type == TIMER) {
+        released_tim[id]=0;
+    }
+    if(type == SUBSCRIBER) {
+        released_sub[id]=0;
+    }
+    if(type == CLIENT) {
+        released_cli[id]=0;
+    }
+    if(type == SERVICE) {
+        released_srv[id]=0;
+    }
+
+    releases--;
+    relcnt++;
+    if(relcnt &gt;= BufferSize){
+        relcnt = 1;
+    }
+}</declaration>
+		<location id="id35" x="-552" y="-127">
+			<name x="-535" y="-153">Executing</name>
+			<label kind="invariant" x="-535" y="-136">x&lt;=exec_time and y&lt;=period</label>
+		</location>
+		<location id="id36" x="-552" y="-272">
+			<name x="-535" y="-298">InReadySet</name>
+			<label kind="invariant" x="-535" y="-289">y&lt;=period</label>
+		</location>
+		<location id="id37" x="-552" y="-544">
+			<name x="-629" y="-578">Ready</name>
+			<label kind="invariant" x="-646" y="-561">y&lt;=period</label>
+		</location>
+		<location id="id38" x="-552" y="-637">
+			<name x="-578" y="-688">Waiting</name>
+			<label kind="invariant" x="-586" y="-671">y&lt;=period</label>
+		</location>
+		<location id="id39" x="-867" y="-544">
+			<name x="-935" y="-552">Start</name>
+			<committed/>
+		</location>
+		<location id="id40" x="-552" y="-399">
+			<committed/>
+		</location>
+		<location id="id41" x="-552" y="-195">
+			<name x="-535" y="-204">StartExecuting</name>
+			<committed/>
+		</location>
+		<location id="id42" x="-867" y="-374">
+			<name x="-1011" y="-382">ExecutionFinished</name>
+			<committed/>
+		</location>
+		<init ref="id39"/>
+		<transition>
+			<source ref="id42"/>
+			<target ref="id39"/>
+		</transition>
+		<transition>
+			<source ref="id41"/>
+			<target ref="id35"/>
+		</transition>
+		<transition>
+			<source ref="id36"/>
+			<target ref="id40"/>
+			<label kind="guard" x="-773" y="-365">type == TIMER</label>
+			<label kind="synchronisation" x="-756" y="-348">poll[TIMER]?</label>
+			<nail x="-714" y="-399"/>
+		</transition>
+		<transition>
+			<source ref="id40"/>
+			<target ref="id36"/>
+			<label kind="assignment" x="-535" y="-323">getExecId()</label>
+		</transition>
+		<transition>
+			<source ref="id39"/>
+			<target ref="id38"/>
+			<label kind="guard" x="-790" y="-654">releases == 0</label>
+			<nail x="-867" y="-637"/>
+		</transition>
+		<transition>
+			<source ref="id35"/>
+			<target ref="id35"/>
+			<label kind="guard" x="-544" y="-93">y==period</label>
+			<label kind="assignment" x="-544" y="-76">increaseRelease()</label>
+			<nail x="-552" y="-59"/>
+			<nail x="-603" y="-59"/>
+			<nail x="-586" y="-85"/>
+			<nail x="-569" y="-110"/>
+		</transition>
+		<transition>
+			<source ref="id36"/>
+			<target ref="id36"/>
+			<label kind="guard" x="-697" y="-289">y==period</label>
+			<label kind="assignment" x="-739" y="-272">increaseRelease()</label>
+			<nail x="-611" y="-298"/>
+			<nail x="-611" y="-230"/>
+		</transition>
+		<transition>
+			<source ref="id37"/>
+			<target ref="id37"/>
+			<label kind="guard" x="-476" y="-569">y==period</label>
+			<label kind="assignment" x="-476" y="-552">increaseRelease()</label>
+			<nail x="-493" y="-569"/>
+			<nail x="-493" y="-518"/>
+		</transition>
+		<transition>
+			<source ref="id38"/>
+			<target ref="id37"/>
+			<label kind="guard" x="-544" y="-620">y==period</label>
+			<label kind="assignment" x="-544" y="-603">increaseRelease(), wait=0</label>
+			<nail x="-552" y="-620"/>
+			<nail x="-552" y="-603"/>
+			<nail x="-552" y="-586"/>
+		</transition>
+		<transition>
+			<source ref="id35"/>
+			<target ref="id42"/>
+			<label kind="guard" x="-994" y="-187">x==exec_time</label>
+			<label kind="synchronisation" x="-994" y="-170">ExecDone?</label>
+			<nail x="-867" y="-127"/>
+			<nail x="-867" y="-127"/>
+			<nail x="-867" y="-136"/>
+			<nail x="-867" y="-170"/>
+		</transition>
+		<transition>
+			<source ref="id36"/>
+			<target ref="id41"/>
+			<label kind="guard" x="-544" y="-255">startExec()</label>
+			<label kind="synchronisation" x="-544" y="-238">ExecStart[type]?</label>
+			<label kind="assignment" x="-544" y="-229">x:=0, increaseInstance()</label>
+		</transition>
+		<transition>
+			<source ref="id37"/>
+			<target ref="id40"/>
+			<label kind="synchronisation" x="-552" y="-510">poll[type]?</label>
+			<label kind="assignment" x="-552" y="-489">update()</label>
+		</transition>
+		<transition>
+			<source ref="id39"/>
+			<target ref="id37"/>
+			<label kind="guard" x="-790" y="-561">releases &gt; 0</label>
+			<label kind="assignment" x="-849" y="-544">wait = 0</label>
+		</transition>
+	</template>
+	<template>
+		<name>WallTimeCallback</name>
+		<parameter>const int id, const int exec_time,const int length, const int period[MAXX], callback_t type, const int BufferSize</parameter>
+		<declaration>clock x;
+clock y;
+int exec_id;
+int next_release;
+
+clock wait;
+
+clock relTim[length];
+int relcnt;
+int elcnt;
+
+int releases = 0;
+bool NoOverflow = true;
+
+bool startExec(){
+    
+    bool result = false;
+    
+    if(type == TIMER) {
+        result = rs_tim==exec_id;
+    }
+    if(type == SUBSCRIBER) {
+        result = rs_sub==exec_id;
+    }
+    if(type == CLIENT) {
+        result = rs_cli==exec_id;
+    }
+    if(type == SERVICE) {
+        result = rs_srv==exec_id;
+    }
+
+    return result;
+}
+
+
+void update() {
+    if(type == TIMER) {
+        rs_tim=rs_tim+1;
+        released_tim[id]=1;
+    }
+    if(type == SUBSCRIBER) {
+        rs_sub=rs_sub+1;
+        released_sub[id]=1;
+    }
+    if(type == CLIENT) {
+        rs_cli=rs_cli+1;
+        released_cli[id]=1;
+    }
+    if(type == SERVICE) {
+        rs_srv=rs_srv+1;
+        released_srv[id]=1;
+    }
+}
+
+void getExecId(){
+    if(type == TIMER) {
+        exec_id=get_exec_id_timer(id);
+    }
+    if(type == SUBSCRIBER) {
+        exec_id=get_exec_id_subscriber(id);
+    }
+    if(type == CLIENT) {
+        exec_id=get_exec_id_client(id);
+    }
+    if(type == SERVICE) {
+        exec_id=get_exec_id_service(id);
+    }
+}
+
+
+void increaseRelease() {
+    next_release++;
+    releases++;
+
+    if(releases &gt; BufferSize){
+        releases = BufferSize;
+        NoOverflow = false;
+    }
+    else{
+        elcnt++;
+        relTim[elcnt-1] = 0;
+    }
+
+}
+
+void increaseInstance() {
+
+    if(type == TIMER) {
+        released_tim[id]=0;
+    }
+    if(type == SUBSCRIBER) {
+        released_sub[id]=0;
+    }
+    if(type == CLIENT) {
+        released_cli[id]=0;
+    }
+    if(type == SERVICE) {
+        released_srv[id]=0;
+    }
+    releases--;    
+    relcnt++;
+}
+</declaration>
+		<location id="id43" x="-637" y="-1368">
+			<name x="-663" y="-1419">Waiting</name>
+			<label kind="invariant" x="-722" y="-1402">y&lt;=period[next_release]</label>
+		</location>
+		<location id="id44" x="-280" y="-1258">
+			<name x="-306" y="-1249">Ready2</name>
+			<committed/>
+		</location>
+		<location id="id45" x="-501" y="-1258">
+			<label kind="invariant" x="-696" y="-1266">y &lt;= period[next_release]</label>
+		</location>
+		<location id="id46" x="-280" y="-1173">
+			<committed/>
+		</location>
+		<location id="id47" x="-68" y="-1258">
+		</location>
+		<location id="id48" x="-501" y="-1054">
+			<label kind="invariant" x="-696" y="-1062">y &lt;= period[next_release]</label>
+		</location>
+		<location id="id49" x="-280" y="-1054">
+			<name x="-323" y="-1037">InReadySet2</name>
+			<committed/>
+		</location>
+		<location id="id50" x="-68" y="-1054">
+		</location>
+		<location id="id51" x="-501" y="-901">
+			<label kind="invariant" x="-645" y="-892">x&lt;=exec_time &amp;&amp; y &lt;= period[next_release]</label>
+		</location>
+		<location id="id52" x="-280" y="-901">
+			<name x="-323" y="-884">Executing2</name>
+			<committed/>
+		</location>
+		<location id="id53" x="-34" y="-994">
+			<label kind="invariant" x="-102" y="-986">x&lt;=exec_time</label>
+		</location>
+		<location id="id54" x="-280" y="-994">
+			<name x="-331" y="-986">StartExecuting</name>
+			<committed/>
+		</location>
+		<location id="id55" x="-1105" y="-1173">
+			<name x="-1115" y="-1207">Finished</name>
+		</location>
+		<location id="id56" x="-756" y="-1173">
+			<name x="-739" y="-1198">ExecutionFinished</name>
+			<committed/>
+		</location>
+		<init ref="id43"/>
+		<transition>
+			<source ref="id56"/>
+			<target ref="id55"/>
+			<label kind="guard" x="-1071" y="-1190">releases == 0 and next_release == length</label>
+		</transition>
+		<transition>
+			<source ref="id54"/>
+			<target ref="id53"/>
+			<label kind="guard" x="-246" y="-1003">next_release == length</label>
+		</transition>
+		<transition>
+			<source ref="id54"/>
+			<target ref="id51"/>
+			<label kind="guard" x="-493" y="-994">next_release &lt; length</label>
+			<nail x="-501" y="-994"/>
+			<nail x="-501" y="-918"/>
+		</transition>
+		<transition>
+			<source ref="id52"/>
+			<target ref="id53"/>
+			<label kind="guard" x="-204" y="-926">next_release == length</label>
+		</transition>
+		<transition>
+			<source ref="id49"/>
+			<target ref="id46"/>
+			<label kind="guard" x="-161" y="-1147">type == TIMER</label>
+			<label kind="synchronisation" x="-178" y="-1130">poll[TIMER]?</label>
+			<nail x="-127" y="-1173"/>
+		</transition>
+		<transition>
+			<source ref="id46"/>
+			<target ref="id49"/>
+			<label kind="assignment" x="-314" y="-1147">getExecId()</label>
+		</transition>
+		<transition>
+			<source ref="id45"/>
+			<target ref="id44"/>
+			<label kind="guard" x="-484" y="-1326">y == period[next_release]</label>
+			<label kind="assignment" x="-459" y="-1309">increaseRelease()</label>
+			<nail x="-484" y="-1309"/>
+			<nail x="-306" y="-1309"/>
+		</transition>
+		<transition>
+			<source ref="id45"/>
+			<target ref="id46"/>
+			<label kind="synchronisation" x="-424" y="-1215">poll[type]?</label>
+			<label kind="assignment" x="-433" y="-1198">update()</label>
+		</transition>
+		<transition>
+			<source ref="id44"/>
+			<target ref="id47"/>
+			<label kind="guard" x="-255" y="-1275">next_release == length</label>
+		</transition>
+		<transition>
+			<source ref="id44"/>
+			<target ref="id45"/>
+			<label kind="guard" x="-467" y="-1275">next_release &lt; length</label>
+		</transition>
+		<transition>
+			<source ref="id47"/>
+			<target ref="id46"/>
+			<label kind="synchronisation" x="-178" y="-1224">poll[type]?</label>
+			<label kind="assignment" x="-187" y="-1198">update()</label>
+		</transition>
+		<transition>
+			<source ref="id56"/>
+			<target ref="id43"/>
+			<label kind="guard" x="-969" y="-1385">releases == 0 and next_release &lt; length</label>
+			<nail x="-756" y="-1368"/>
+		</transition>
+		<transition>
+			<source ref="id43"/>
+			<target ref="id44"/>
+			<label kind="guard" x="-510" y="-1411">y == period[next_release]</label>
+			<label kind="assignment" x="-510" y="-1394">increaseRelease(), wait=0</label>
+			<nail x="-280" y="-1368"/>
+		</transition>
+		<transition>
+			<source ref="id56"/>
+			<target ref="id44"/>
+			<label kind="guard" x="-612" y="-1360">releases &gt; 0</label>
+			<label kind="assignment" x="-612" y="-1343">wait = 0</label>
+			<nail x="-757" y="-1343"/>
+			<nail x="-298" y="-1343"/>
+		</transition>
+		<transition>
+			<source ref="id48"/>
+			<target ref="id49"/>
+			<label kind="guard" x="-484" y="-1122">y == period[next_release]</label>
+			<label kind="assignment" x="-450" y="-1105">increaseRelease()</label>
+			<nail x="-484" y="-1105"/>
+			<nail x="-306" y="-1105"/>
+		</transition>
+		<transition>
+			<source ref="id48"/>
+			<target ref="id54"/>
+			<label kind="guard" x="-459" y="-1045">startExec()</label>
+			<label kind="synchronisation" x="-459" y="-1037">ExecStart[type]?</label>
+			<label kind="assignment" x="-459" y="-1028">x:=0, increaseInstance()</label>
+		</transition>
+		<transition>
+			<source ref="id49"/>
+			<target ref="id50"/>
+			<label kind="guard" x="-255" y="-1071">next_release == length</label>
+		</transition>
+		<transition>
+			<source ref="id49"/>
+			<target ref="id48"/>
+			<label kind="guard" x="-467" y="-1071">next_release &lt; length</label>
+		</transition>
+		<transition>
+			<source ref="id50"/>
+			<target ref="id54"/>
+			<label kind="guard" x="-195" y="-1045">startExec()</label>
+			<label kind="synchronisation" x="-195" y="-1037">ExecStart[type]?</label>
+			<label kind="assignment" x="-195" y="-1028">x:=0, increaseInstance()</label>
+		</transition>
+		<transition>
+			<source ref="id51"/>
+			<target ref="id52"/>
+			<label kind="guard" x="-484" y="-969">y == period[next_release]</label>
+			<label kind="assignment" x="-459" y="-952">increaseRelease()</label>
+			<nail x="-484" y="-952"/>
+			<nail x="-306" y="-952"/>
+		</transition>
+		<transition>
+			<source ref="id51"/>
+			<target ref="id56"/>
+			<label kind="guard" x="-731" y="-918">x == exec_time</label>
+			<label kind="synchronisation" x="-723" y="-901">ExecDone?</label>
+			<nail x="-757" y="-901"/>
+		</transition>
+		<transition>
+			<source ref="id52"/>
+			<target ref="id51"/>
+			<label kind="guard" x="-467" y="-918">next_release &lt; length</label>
+		</transition>
+		<transition>
+			<source ref="id53"/>
+			<target ref="id56"/>
+			<label kind="guard" x="-8" y="-1011">x == exec_time</label>
+			<label kind="synchronisation" x="0" y="-994">ExecDone?</label>
+		</transition>
+	</template>
+	<system>// Place template instantiations here.
+
+// ########################### PERIODIC CALLBACK #####################################
+// Callback that is released periodically
+// Format: x = PeriodicCallback(ID, WCET, PERIOD, TYPE, INITIALLY_RELEASED, BUFFERSIZE)
+// ID: for each type unique id giving the priority (0 has highest priority = first registered)
+// ET: Execution time of the callback
+// PERIOD: Period od the triggering of the callback
+// TYPE: One of the Types TIMER,SUBSCRIBER,SERVICE,CLIENT
+// INITIALLY_RELEASED: 1 or 0, 1 means released at start, 0 means released with first trigger
+// BUFFERSIZE: Must be one for timers, otherwise not, determines the max amount of releases before overflow
+
+// ########################### WALL TIME CALLBACK #####################################
+// Callback that is released at specific (defined) points in time (absolute system time)
+// Format: x = PeriodicCallback(ID, ET, AMOUNT_OF_RELEASES ,RELEASE_ARRAY, TYPE, INITIALLY_RELEASED, BUFFERSIZE)
+// ID: for each type unique id giving the priority (0 has highest priority = first registered)
+// ET: Execution time of the callback
+// AMOUNT_OF_RELEASES: States how often the callback is triggered. 
+// RELEASE_ARRAR: Array that includes all the release times sorted small to big. 0 means released at start. Note, the array needs to have a set size shared for all templates
+//                 Format: const int releasesTimer1[MAXX] = {0,1,2,3,0,0,0,0,0,0};, MAXX is defined in global declarations. Fill up the unused space with zeros.
+// TYPE: One of the Types TIMER,SUBSCRIBER,SERVICE,CLIENT
+// BUFFERSIZE: Must be one for timers, otherwise not, determines the max amount of releases before overflow
+
+
+// VERIFICATION : Model is for verification of buffer overflow! The execution trace might not be the same as a simulation! (As buffers are reset when overflow to avoid always increasing numbers)
+// SIMULATION :
+
+// Simulation Time
+const int StopTime = 100;
+
+// Release Times for WallTimeCallbacks
+const int releasesT0T1[MAXX] = {2,0,0,0,0,0,0,0,0,0};
+const int releasesT2T3[MAXX] = {23,0,0,0,0,0,0,0,0,0};
+const int releasesH[MAXX]={0,0,15,0,0,0,0,0,0,0};
+const int releasesM[MAXX]={0,0,0,0,0,0,0,0,0,0};
+const int releasesL[MAXX]={0,0,0,0,0,0,0,0,0,0};
+const int releasesSH[MAXX]={0,0,0,0,0,0,0,0,0,0};
+const int releasesSM[MAXX]={15,15,0,0,0,0,0,0,0,0};
+const int releasesSL[MAXX]={0,0,0,0,0,0,0,0,0,0};
+
+// Executors
+ExecV1 = ExecutorV1(StopTime);
+ExecV2 = ExecutorV2(StopTime);
+
+// Callbacks
+T0 = WallTimeCallback(0, 5, 1, releasesT0T1, TIMER,1);
+T1 = WallTimeCallback(1, 5, 1, releasesT0T1, TIMER,1);
+T2 = WallTimeCallback(2, 5, 1, releasesT2T3, TIMER,1);
+T3 = WallTimeCallback(3, 5, 1, releasesT2T3, TIMER,1);
+H = WallTimeCallback(0, 5, 3, releasesH, SUBSCRIBER,10);
+M = WallTimeCallback(1, 5, 2, releasesL, SUBSCRIBER,10);
+L = WallTimeCallback(2, 5, 2, releasesM, SUBSCRIBER,10);
+SH = WallTimeCallback(0, 5, 2, releasesSH, SERVICE,10);
+SM = WallTimeCallback(1, 5, 2, releasesSM, SERVICE,10);
+SL = WallTimeCallback(2, 5, 2, releasesSL, SERVICE,10); 
+
+// System Definition
+system ExecV1 &lt; T0,T1,T2,T3, H, M, L, SH, SM, SL;
+//system ExecV2 &lt; T0,T1,T2,T3, H, M, L, SH, SM, SL;
+
+
+</system>
+	<queries>
+		<query>
+			<formula>A[] T0.NoOverflow</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] T1.NoOverflow</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] T2.NoOverflow</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] T3.NoOverflow</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] H.NoOverflow</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] M.NoOverflow</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] L.NoOverflow</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] SH.NoOverflow</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] SM.NoOverflow</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] SL.NoOverflow</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] H.releases &lt; 3</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>A[] H.releases &lt; 2
+</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>sup{T0.ExecutionFinished}: T0.relTim[T0.relcnt-1]</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>sup{T1.ExecutionFinished}: T1.relTim[T1.relcnt-1]</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>sup{T2.ExecutionFinished}: T2.relTim[T2.relcnt-1]</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>sup{T3.ExecutionFinished}: T3.relTim[T3.relcnt-1]</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>sup{H.ExecutionFinished}: H.relTim[H.relcnt-1]</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>sup{M.ExecutionFinished}: M.relTim[M.relcnt-1]</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>sup{L.ExecutionFinished}: L.relTim[L.relcnt-1]</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>sup{SH.ExecutionFinished}: SH.relTim[SH.relcnt-1]</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>sup{SM.ExecutionFinished}: SM.relTim[SM.relcnt-1]</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula>sup{SL.ExecutionFinished}: SL.relTim[SL.relcnt-1]</formula>
+			<comment></comment>
+		</query>
+		<query>
+			<formula></formula>
+			<comment></comment>
+		</query>
+	</queries>
+</nta>
