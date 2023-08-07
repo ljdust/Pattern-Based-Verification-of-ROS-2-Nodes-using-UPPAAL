@@ -1,18 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE nta PUBLIC '-//Uppaal Team//DTD Flat System 1.1//EN' 'http://www.it.uu.se/research/group/darts/uppaal/flat-1_2.dtd'>
 <nta>
-	<declaration>// Improvements:
-// 1. Multiple executor instances and assignment of Callbacks to executors     []
-// 2. Executor Version 1                                                       [X]
-// 3. Executor Version 2                                                       []
-// 4. Periodic Callback, add start time and end time?
-// 5. Wall Time Callback with array of times for triggering
-// 6. Data triggered Callbacks Synchronizing Callbacks to synchronize over data 
-// 7. Verification and Simulation mode
-
-
-
-// MAXIMUM AMOUNT OF CALLBACKS FOR EACH TYPE
+	<declaration>// MAXIMUM AMOUNT OF CALLBACKS FOR EACH TYPE
 const int MAX = 100;
 const int MAXX = 10;
 
@@ -24,16 +13,6 @@ const callback_t SUBSCRIBER = 2;
 const callback_t CLIENT = 3;
 
 
-
-// What is missing?
-// Define for releases either period or an array of release times
-// connect timers to the release of publishers, model communication delay
-// Add state done to timer
-
-
-// Place global declarations here.
-//broadcast chan polltim, pollsub, pollsrv, pollcli;
-
 //First line replaced with
 broadcast chan poll[4];
 
@@ -41,25 +20,16 @@ broadcast chan poll[4];
 int rs_tim, rs_sub, rs_srv, rs_cli;
 // Priority of next callback
 int exec_prio;
-// Channels for Execution
-//chan TimExecStart, SubExecStart, SrvExecStart, CliExecStart, ExecDone;
 
 // Previous line replaced with:
 chan ExecStart[4], ExecDone;
 
-// System time clock
-//clock clk; //GU: I comment it for saving the state space as you do not use this clock in the model, so having it will just increase the state space for no meaning.
 
-
-
-//Release Timers
 //chan release_timer[timers];
 int released_tim[MAX];
 int released_sub[MAX];
 int released_srv[MAX];
 int released_cli[MAX];
-
-// Function to search for highest priority callback to execute
 
 // Function to return execid to callback
 int get_exec_id_timer(int id)
