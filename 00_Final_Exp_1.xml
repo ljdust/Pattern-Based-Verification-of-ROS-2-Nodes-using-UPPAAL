@@ -652,7 +652,7 @@ void increaseInstance() {
 
     releases--;
     relcnt++;
-    if(relcnt &gt;= BufferSize){
+    if(relcnt = BufferSize){
         relcnt = 1;
     }
 }</declaration>
